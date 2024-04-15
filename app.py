@@ -151,7 +151,7 @@ def concatenate_videos_ffmpeg(scene_videos, output_filename):
             f.write(f"file '{video_filename}'\n")
 
     # Use FFmpeg to concatenate the videos and resize to 1920x1080
-    subprocess.run(['ffmpeg', '-f', 'concat', '-safe', '0', '-i', 'video_list.txt', '-c', 'copy', '-vf', 'scale=1920:1080', output_filename])
+    subprocess.run(['ffmpeg', '-f', 'concat', '-safe', '0', '-i', 'video_list.txt', '-vf', 'scale=1920:1080', '-c:a', 'aac', '-b:a', '256k', '-c:v', 'libx264', '-preset', 'medium', output_filename])
 
     # Clean up the video list file
     os.remove('video_list.txt')
