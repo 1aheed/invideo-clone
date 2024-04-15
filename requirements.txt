@@ -1,6 +1,6 @@
 gradio
 numpy
-opencv
+opencv-python
 gtts
 moviepy
 requests
