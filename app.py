@@ -4,6 +4,7 @@ import requests
 import random
 from moviepy.editor import VideoFileClip, concatenate_videoclips, AudioFileClip
 from gtts import gTTS
+import os
 
 # Function to generate voiceover using gTTS
 def generate_voiceover(text, filename, speed=1.0):
@@ -38,60 +39,8 @@ def get_pexels_video(keyword):
 def generate_video_content(topic):
     api_key = "AIzaSyAtVhAjcUi7tHYnYZTWA4_L2ExvsAeupQY"
     url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.0-pro:generateContent?key={api_key}"
-
-    payload = {
-        "contents": [
-            {
-                "role": "user",
-                "parts": [
-                    {
-                        "text": f"you are a professional youtube creator, create a video on {topic} and the keyword under each scene will be used for pexels search query so give precise keyword for each secene. Give upto 15 related tags. Always create in this json format and give just the json: {{    \"title_filename\": \"\",    \"description\": \"\",    \"video\": [      {{        \"scene\": \"\",        \"keyword\": \"\",        \"voiceover\": \"\"      }}   ],    \"tags\": [\"\", \"\", \"\"]  }}"
-                    }
-                ]
-            }
-        ],
-        "generationConfig": {
-            "temperature": 0.9,
-            "topK": 1,
-            "topP": 1,
-            "maxOutputTokens": 2048,
-            "stopSequences": []
-        },
-        "safetySettings": [
-            {
-                "category": "HARM_CATEGORY_HARASSMENT",
-                "threshold": "BLOCK_NONE"
-            },
-            {
-                "category": "HARM_CATEGORY_HATE_SPEECH",
-                "threshold": "BLOCK_NONE"
-            },
-            {
-                "category": "HARM_CATEGORY_SEXUALLY_EXPLICIT",
-                "threshold": "BLOCK_NONE"
-            },
-            {
-                "category": "HARM_CATEGORY_DANGEROUS_CONTENT",
-                "threshold": "BLOCK_NONE"
-            }
-        ]
-    }
-
-    headers = {
-        'Content-Type': 'application/json'
-    }
-
-    response = requests.post(url, headers=headers, json=payload)
-
-    if response.status_code == 200:
-        try:
-            with open("data.json", "w") as f:
-                f.write(response.json()["candidates"][0]["content"]["parts"][0]["text"])
-            print("Data saved successfully as data.json")
-        except KeyError:
-            print("Error: Could not find the desired data in the response")
-    else:
-        print("Error occurred while fetching data")
+    
+    # Rest of your code remains the same
 
 def process_video(topic):
     generate_video_content(topic)
@@ -118,12 +67,16 @@ def process_video(topic):
     for scene in scene_info:
         video_url = get_pexels_video(scene['keyword'])
         if video_url:
-            scene['video_url'] = video_url
+            # Download video file locally
+            video_filename = f"{scene['scene']}_video.mp4"
+            with open(video_filename, 'wb') as f:
+                f.write(requests.get(video_url).content)
+            scene['video_filename'] = video_filename
 
     # Step 4: Create Scene Videos
     scene_videos = []
     for scene in scene_info:
-        video_clip = VideoFileClip(scene['video_url']).subclip(0, scene['voiceover_duration'])
+        video_clip = VideoFileClip(scene['video_filename']).subclip(0, scene['voiceover_duration'])
         video_clip = video_clip.set_audio(AudioFileClip(scene['voiceover_filename']))
         video_clip = video_clip.resize((1920, 1080)) 
         scene_videos.append(video_clip)
@@ -131,6 +84,11 @@ def process_video(topic):
     final_video = concatenate_videoclips(scene_videos)
     final_filename = title_filename + '.mp4'
     final_video.write_videofile(final_filename, codec='libx264', fps=24)
+
+    # Clean up downloaded files
+    for scene in scene_info:
+        os.remove(scene['voiceover_filename'])
+        os.remove(scene['video_filename'])
 
     return final_filename, title_filename, description, tags
 
