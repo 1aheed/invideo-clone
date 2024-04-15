@@ -2,7 +2,7 @@ import gradio as gr
 import json
 import requests
 import random
-from moviepy.editor import VideoFileClip, concatenate_videoclips, AudioFileClip, ResizeClip
+from moviepy.editor import VideoFileClip, concatenate_videoclips, AudioFileClip
 from gtts import gTTS
 import os
 
@@ -130,7 +130,7 @@ def process_video(topic):
     for scene in scene_info:
         video_clip = VideoFileClip(scene['video_filename']).subclip(0, scene['voiceover_duration'])
         video_clip = video_clip.set_audio(AudioFileClip(scene['voiceover_filename']))
-        video_clip = resize_clip(video_clip, newsize=(1920, 1080))
+        video_clip = video_clip.resize((1920, 1080))
         scene_videos.append(video_clip)
 
     final_video = concatenate_videoclips(scene_videos)
