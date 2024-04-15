@@ -130,12 +130,11 @@ def process_video(topic):
     for scene in scene_info:
         video_clip = VideoFileClip(scene['video_filename']).subclip(0, scene['voiceover_duration'])
         video_clip = video_clip.set_audio(AudioFileClip(scene['voiceover_filename']))
-        video_clip = video_clip.resize((1920, 1080))
         scene_videos.append(video_clip)
 
     final_video = concatenate_videoclips(scene_videos)
     final_filename = title_filename + '.mp4'
-    final_video.write_videofile(final_filename, codec='libx264', fps=24)
+    final_video.write_videofile(final_filename, codec='libx264', fps=24, resolution=(1920, 1080))
 
     # Clean up downloaded files
     for scene in scene_info:
