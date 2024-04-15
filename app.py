@@ -39,8 +39,60 @@ def get_pexels_video(keyword):
 def generate_video_content(topic):
     api_key = "AIzaSyAtVhAjcUi7tHYnYZTWA4_L2ExvsAeupQY"
     url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.0-pro:generateContent?key={api_key}"
-    
-    # Rest of your code remains the same
+
+    payload = {
+        "contents": [
+            {
+                "role": "user",
+                "parts": [
+                    {
+                        "text": f"you are a professional youtube creator, create a video on {topic} and the keyword under each scene will be used for pexels search query so give precise keyword for each secene. Give upto 15 related tags. Always create in this json format and give just the json: {{    \"title_filename\": \"\",    \"description\": \"\",    \"video\": [      {{        \"scene\": \"\",        \"keyword\": \"\",        \"voiceover\": \"\"      }}   ],    \"tags\": [\"\", \"\", \"\"]  }}"
+                    }
+                ]
+            }
+        ],
+        "generationConfig": {
+            "temperature": 0.9,
+            "topK": 1,
+            "topP": 1,
+            "maxOutputTokens": 2048,
+            "stopSequences": []
+        },
+        "safetySettings": [
+            {
+                "category": "HARM_CATEGORY_HARASSMENT",
+                "threshold": "BLOCK_NONE"
+            },
+            {
+                "category": "HARM_CATEGORY_HATE_SPEECH",
+                "threshold": "BLOCK_NONE"
+            },
+            {
+                "category": "HARM_CATEGORY_SEXUALLY_EXPLICIT",
+                "threshold": "BLOCK_NONE"
+            },
+            {
+                "category": "HARM_CATEGORY_DANGEROUS_CONTENT",
+                "threshold": "BLOCK_NONE"
+            }
+        ]
+    }
+
+    headers = {
+        'Content-Type': 'application/json'
+    }
+
+    response = requests.post(url, headers=headers, json=payload)
+
+    if response.status_code == 200:
+        try:
+            with open("data.json", "w") as f:
+                f.write(response.json()["candidates"][0]["content"]["parts"][0]["text"])
+            print("Data saved successfully as data.json")
+        except KeyError:
+            print("Error: Could not find the desired data in the response")
+    else:
+        print("Error occurred while fetching data")
 
 def process_video(topic):
     generate_video_content(topic)
