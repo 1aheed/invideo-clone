@@ -1,5 +1,4 @@
 gradio
-espeakng
-pyttsx3
+gtts
 moviepy
 requests
