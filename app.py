@@ -2,10 +2,9 @@ import gradio as gr
 import json
 import requests
 import random
-from moviepy.editor import VideoFileClip, concatenate_videoclips, AudioFileClip
+from moviepy.editor import VideoFileClip, concatenate_videoclips, AudioFileClip, ResizeClip
 from gtts import gTTS
 import os
-from moviepy.video.fx.resize import resize as resize_clip
 
 # Function to generate voiceover using gTTS
 def generate_voiceover(text, filename, speed=1.0):
