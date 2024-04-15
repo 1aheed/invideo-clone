@@ -11,7 +11,7 @@ def generate_voiceover(text, filename, speed=1.0):
     tts.save(filename)
 
 
-# Function to fetch landscape videos from Pexels 
+# Function to fetch landscape video direct links from Pexels 
 def get_pexels_video(keyword):
     headers = {"Authorization": "8LpygbUwv484x1RkoAJuKH08yhmBKrYpJ0MlLSLboSS736mfs1dODS3v"} 
     params = {
