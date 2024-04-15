@@ -2,9 +2,9 @@ import gradio as gr
 import json
 import requests
 import random
+import os
 from moviepy.editor import VideoFileClip, concatenate_videoclips, AudioFileClip
 from gtts import gTTS
-import os
 
 # Function to generate voiceover using gTTS
 def generate_voiceover(text, filename, speed=1.0):
@@ -12,8 +12,12 @@ def generate_voiceover(text, filename, speed=1.0):
     tts.save(filename)
 
 
-# Function to download landscape videos from Pexels
+# Function to fetch landscape videos from Pexels and save with original names
 def download_pexels_video(keyword, save_dir="videos"):
+    filename = os.path.join(save_dir, f"{keyword.split('/')[-1]}_video.mp4")
+    if os.path.exists(filename):
+        return filename
+
     headers = {"Authorization": "8LpygbUwv484x1RkoAJuKH08yhmBKrYpJ0MlLSLboSS736mfs1dODS3v"} 
     params = {
         "query": keyword, 
@@ -29,10 +33,13 @@ def download_pexels_video(keyword, save_dir="videos"):
         if landscape_videos:
             selected_video = random.choice(landscape_videos)
             video_url = selected_video['video_files'][0]['link']
-            video_filename = os.path.join(save_dir, f"{keyword}_video.mp4")
-            with open(video_filename, 'wb') as f:
+
+            # Create the directory if it doesn't exist
+            os.makedirs(save_dir, exist_ok=True)
+
+            with open(filename, 'wb') as f:
                 f.write(requests.get(video_url).content)
-            return video_filename
+            return filename
         else:
             print(f"No landscape video found on Pexels for {keyword}")
             return None
