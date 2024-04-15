@@ -48,7 +48,7 @@ def generate_video_content(topic):
                 "role": "user",
                 "parts": [
                     {
-                        "text": f"you are a professional youtube creator, create a one minute short video on {topic} and the keyword under each scene will be used for pexels search query so give precise keyword for each secene and create very short scene with a flow. Give upto 15 related tags. Give response in this json format and give just the json: {{    \"title_filename\": \"\",    \"description\": \"\",    \"video\": [      {{        \"scene\": \"\",        \"keyword\": \"\",        \"voiceover\": \"\"      }}   ],    \"tags\": [\"\", \"\", \"\"]  }}"
+                        "text": f"Create a short one-minute video on {topic} and the keyword under each scene will be used for pexels search query, so give a precise keyword for each scene and create  very short scenes. Give upto 15 related tags. Give response in this json format and give just the json: {{    \"title_filename\": \"\",    \"description\": \"\",    \"video\": [      {{        \"scene\": \"\",        \"keyword\": \"\",        \"voiceover\": \"\"      }}   ],    \"tags\": [\"\", \"\", \"\"]  }}"
                     }
                 ]
             }
