@@ -1,0 +1,4 @@
+gradio
+pyttsx3
+moviepy
+requests
