@@ -1,4 +1,5 @@
 gradio
+espeakng
 pyttsx3
 moviepy
 requests
