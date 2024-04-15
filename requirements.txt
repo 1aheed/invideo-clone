@@ -1,6 +1,6 @@
 gradio
 py-espeak-ng
 espeakng
-gtts
+pyttsx3
 moviepy
 requests
