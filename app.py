@@ -19,9 +19,7 @@ def get_pexels_video(keyword):
         "query": keyword, 
         "per_page": 20,  # Increase the per_page parameter to get more results
         "orientation": "portrait", 
-        "size": "large",
-        "min_width": 1280,
-        "min_height": 2120
+        "size": "large"
     }
     response = requests.get("https://api.pexels.com/videos/search", headers=headers, params=params)
 
