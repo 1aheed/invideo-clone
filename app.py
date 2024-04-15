@@ -1,9 +1,14 @@
 import gradio as gr
 import json
 import requests
-import pyttsx3
 import random
 from moviepy.editor import VideoFileClip, concatenate_videoclips, AudioFileClip
+import espeakng
+import pyttsx3
+
+# Set pyttsx3 to use espeak-ng as the speech synthesizer backend
+import os
+os.environ['TTS_ENGINE'] = 'espeak-ng'
 
 # Function to generate voiceover using pyttsx3 with a female voice
 def generate_voiceover(text, filename, speed=130):
