@@ -1,6 +1,6 @@
 gradio
-numpy
-opencv-python
+py-espeak-ng
+espeakng
 gtts
 moviepy
 requests
