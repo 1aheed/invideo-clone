@@ -131,15 +131,12 @@ def process_video(topic):
     scene_videos = []
     for scene in scene_info:
         video_clip = VideoFileClip(scene['video_filename']).subclip(0, scene['voiceover_duration'])
-        # Resize video to fit within 1920 x 1080 frame
-        video_clip_resized = video_clip.resize((1920, 1080))
-        # Set audio and store the modified clip in a new variable
-        video_clip_with_audio = video_clip_resized.set_audio(AudioFileClip(scene['voiceover_filename']))
-        scene_videos.append(video_clip_with_audio)
+        # Add audio to video clip
+        video_clip = video_clip.set_audio(AudioFileClip(scene['voiceover_filename']))
+        scene_videos.append(video_clip)  # Append video_clip object instead of filename
 
-    final_clip = concatenate_videoclips(scene_videos, method="compose")
     final_filename = title_filename + '.mp4'
-    final_clip.write_videofile(final_filename, codec="libx264", audio_codec="aac", temp_audiofile="temp-audio.m4a", remove_temp=True, verbose=False)
+    concatenate_videos_ffmpeg(scene_videos, final_filename)
 
     # Clean up downloaded files
     for scene in scene_info:
@@ -147,6 +144,27 @@ def process_video(topic):
         os.remove(scene['video_filename'])
 
     return final_filename, title_filename, description, tags
+
+def concatenate_videos_ffmpeg(scene_videos, output_filename):
+    # Write scene_videos to temporary files
+    temp_filenames = []
+    for i, video_clip in enumerate(scene_videos):
+        temp_filename = f'temp_video_{i}.mp4'
+        video_clip.write_videofile(temp_filename, codec="libx264", audio_codec="aac", temp_audiofile="temp-audio.m4a", remove_temp=True, verbose=False)
+        temp_filenames.append(temp_filename)
+
+    # Create a text file containing the list of videos to concatenate
+    with open('video_list.txt', 'w') as f:
+        for temp_filename in temp_filenames:
+            f.write(f"file '{temp_filename}'\n")
+
+    # Use FFmpeg to concatenate the videos and resize to 1920x1080
+    subprocess.run(['ffmpeg', '-f', 'concat', '-safe', '0', '-i', 'video_list.txt', '-vf', 'scale=1920:1080', '-c:a', 'aac', '-b:a', '256k', '-c:v', 'libx264', '-preset', 'medium', output_filename])
+
+    # Clean up the video list file and temporary video files
+    os.remove('video_list.txt')
+    for temp_filename in temp_filenames:
+        os.remove(temp_filename)
 
 def gr_interface(topic):
     video_file, title_filename, description, tags = process_video(topic)
