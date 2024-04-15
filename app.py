@@ -111,7 +111,7 @@ def concatenate_videos_ffmpeg(scene_videos, output_filename):
             f.write(f"file '{temp_filename}'\n")
 
     # Use FFmpeg to concatenate the videos without resizing
-    subprocess.run(['ffmpeg', '-f', 'concat', '-safe', '0', '-i', 'video_list.txt', '-c', 'copy', output_filename])
+    subprocess.run(['ffmpeg', '-f', 'concat', '-safe', '0', '-i', 'video_list.txt', '-vf', 'scale=1080:1920', '-c:a', 'aac', '-b:a', '256k', '-c:v', 'libx264', '-preset', 'medium', output_filename])
 
     # Clean up the video list file and temporary video files
     os.remove('video_list.txt')
