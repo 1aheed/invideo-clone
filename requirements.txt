@@ -1,5 +1,4 @@
 gradio
 gtts
 moviepy
-pillow
 requests
