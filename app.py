@@ -2,9 +2,11 @@ import gradio as gr
 import json
 import requests
 import random
-from moviepy.editor import VideoFileClip, concatenate_videoclips, AudioFileClip
-from gtts import gTTS
+import subprocess
 import os
+
+from gtts import gTTS
+from moviepy.editor import VideoFileClip, AudioFileClip
 
 # Function to generate voiceover using gTTS
 def generate_voiceover(text, filename, speed=1.0):
@@ -35,7 +37,7 @@ def get_pexels_video(keyword):
         print("Failed to fetch video from Pexels")
         return None
 
-# Step 1: Generate video content and create data.json
+# Function to generate video content and create data.json
 def generate_video_content(topic):
     api_key = "AIzaSyAtVhAjcUi7tHYnYZTWA4_L2ExvsAeupQY"
     url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.0-pro:generateContent?key={api_key}"
@@ -130,11 +132,10 @@ def process_video(topic):
     for scene in scene_info:
         video_clip = VideoFileClip(scene['video_filename']).subclip(0, scene['voiceover_duration'])
         video_clip = video_clip.set_audio(AudioFileClip(scene['voiceover_filename']))
-        scene_videos.append(video_clip)
+        scene_videos.append(scene['video_filename'])
 
-    final_video = concatenate_videoclips(scene_videos)
     final_filename = title_filename + '.mp4'
-    final_video.write_videofile(final_filename, codec='libx264', fps=24)
+    concatenate_videos_ffmpeg(scene_videos, final_filename)
 
     # Clean up downloaded files
     for scene in scene_info:
@@ -142,6 +143,18 @@ def process_video(topic):
         os.remove(scene['video_filename'])
 
     return final_filename, title_filename, description, tags
+
+def concatenate_videos_ffmpeg(scene_videos, output_filename):
+    # Create a text file containing the list of videos to concatenate
+    with open('video_list.txt', 'w') as f:
+        for video_filename in scene_videos:
+            f.write(f"file '{video_filename}'\n")
+
+    # Use FFmpeg to concatenate the videos and resize to 1920x1080
+    subprocess.run(['ffmpeg', '-f', 'concat', '-safe', '0', '-i', 'video_list.txt', '-c', 'copy', '-vf', 'scale=1920:1080', output_filename])
+
+    # Clean up the video list file
+    os.remove('video_list.txt')
 
 def gr_interface(topic):
     video_file, title_filename, description, tags = process_video(topic)
