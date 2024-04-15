@@ -2,7 +2,6 @@ import gradio as gr
 import json
 import requests
 import random
-import os
 from moviepy.editor import VideoFileClip, concatenate_videoclips, AudioFileClip
 from gtts import gTTS
 
@@ -12,12 +11,8 @@ def generate_voiceover(text, filename, speed=1.0):
     tts.save(filename)
 
 
-# Function to fetch landscape videos from Pexels and save with original names
-def download_pexels_video(keyword, save_dir="videos"):
-    filename = os.path.join(save_dir, f"{keyword.split('/')[-1]}_video.mp4")
-    if os.path.exists(filename):
-        return filename
-
+# Function to fetch landscape videos from Pexels 
+def get_pexels_video(keyword):
     headers = {"Authorization": "8LpygbUwv484x1RkoAJuKH08yhmBKrYpJ0MlLSLboSS736mfs1dODS3v"} 
     params = {
         "query": keyword, 
@@ -32,14 +27,7 @@ def download_pexels_video(keyword, save_dir="videos"):
         landscape_videos = [video for video in videos if video['width'] > video['height']]
         if landscape_videos:
             selected_video = random.choice(landscape_videos)
-            video_url = selected_video['video_files'][0]['link']
-
-            # Create the directory if it doesn't exist
-            os.makedirs(save_dir, exist_ok=True)
-
-            with open(filename, 'wb') as f:
-                f.write(requests.get(video_url).content)
-            return filename
+            return selected_video['video_files'][0]['link']
         else:
             print(f"No landscape video found on Pexels for {keyword}")
             return None
@@ -129,16 +117,15 @@ def process_video(topic):
 
     # Step 3: Fetch videos from Pexels based on default orientation (landscape)
     for scene in scene_info:
-        video_filename = download_pexels_video(scene['keyword'])
-        if video_filename:
-            scene['video_filename'] = video_filename
+        video_url = get_pexels_video(scene['keyword'])
+        if video_url:
+            scene['video_url'] = video_url
 
     # Step 4: Create Scene Videos
     scene_videos = []
     for scene in scene_info:
-        video_clip = VideoFileClip(scene['video_filename']).subclip(0, scene['voiceover_duration'])
+        video_clip = VideoFileClip(scene['video_url']).subclip(0, scene['voiceover_duration'])
         video_clip = video_clip.set_audio(AudioFileClip(scene['voiceover_filename']))
-        video_clip = video_clip.resize((1920, 1080), resample='lanczos') 
         scene_videos.append(video_clip)
 
     final_video = concatenate_videoclips(scene_videos)
