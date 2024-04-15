@@ -48,7 +48,7 @@ def generate_video_content(topic):
                 "role": "user",
                 "parts": [
                     {
-                        "text": f"you are a professional youtube creator, create a one minute short video on {topic} and the keyword under each scene will be used for pexels search query so give precise keyword for each secene. Give upto 15 related tags. Always create in this json format and give just the json: {{    \"title_filename\": \"\",    \"description\": \"\",    \"video\": [      {{        \"scene\": \"\",        \"keyword\": \"\",        \"voiceover\": \"\"      }}   ],    \"tags\": [\"\", \"\", \"\"]  }}"
+                        "text": f"you are a professional youtube creator, create a one minute short video on {topic} and the keyword under each scene will be used for pexels search query so give precise keyword for each secene and create very short scene with a flow. Give upto 15 related tags. Give response in this json format and give just the json: {{    \"title_filename\": \"dont use colons or speacial characters here",    \"description\": \"\",    \"video\": [      {{        \"scene\": \"\",        \"keyword\": \"\",        \"voiceover\": \"\"      }}   ],    \"tags\": [\"\", \"\", \"\"]  }}"
                     }
                 ]
             }
@@ -182,8 +182,8 @@ iface = gr.Interface(
     fn=process_video,
     inputs="text",
     outputs=["video", "text", "text", "text"],
-    description="Generate a video from topic for free",
-    title="Video Processing"
+    description="Generate a free video just from a topic for free! This is a prototype if you want for long videos with elevenlabs voice, contact me I have a code ready for it.",
+    title="Text to YouTube Video"
 )
 
 iface.launch()
