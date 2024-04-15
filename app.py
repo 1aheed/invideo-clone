@@ -162,7 +162,13 @@ def process_video(topic):
 
     final_video.release()
 
-    return "Final video generated successfully."
+    # Extract title_filename, description, and tags from JSON
+    title_filename = data.get('title_filename', '')
+    description = data.get('description', '')
+    tags = ', '.join(data.get('tags', []))
+
+    # Return video file, title filename, description, and tags
+    return scene_videos[0], title_filename, description, tags
 
 def gr_interface(topic):
     video_file, title_filename, description, tags = process_video(topic)
