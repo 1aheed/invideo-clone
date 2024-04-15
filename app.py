@@ -3,21 +3,13 @@ import json
 import requests
 import random
 from moviepy.editor import VideoFileClip, concatenate_videoclips, AudioFileClip
-import espeakng
-import pyttsx3
+from gtts import gTTS
 
-# Set pyttsx3 to use espeak-ng as the speech synthesizer backend
-import os
-os.environ['TTS_ENGINE'] = 'espeak-ng'
+# Function to generate voiceover using gTTS
+def generate_voiceover(text, filename, speed=1.0):
+    tts = gTTS(text=text, lang='en', slow=False)
+    tts.save(filename)
 
-# Function to generate voiceover using pyttsx3 with a female voice
-def generate_voiceover(text, filename, speed=130):
-    engine = pyttsx3.init()
-    voices = engine.getProperty('voices')
-    engine.setProperty('voice', voices[1].id)  
-    engine.setProperty('rate', speed)
-    engine.save_to_file(text, filename)
-    engine.runAndWait()
 
 # Function to fetch landscape videos from Pexels 
 def get_pexels_video(keyword):
