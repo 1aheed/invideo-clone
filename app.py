@@ -131,8 +131,10 @@ def process_video(topic):
     scene_videos = []
     for scene in scene_info:
         video_clip = VideoFileClip(scene['video_filename']).subclip(0, scene['voiceover_duration'])
+        # Resize video to fit within 1920 x 1080 frame
+        video_clip_resized = video_clip.resize((1920, 1080))
         # Set audio and store the modified clip in a new variable
-        video_clip_with_audio = video_clip.set_audio(AudioFileClip(scene['voiceover_filename']))
+        video_clip_with_audio = video_clip_resized.set_audio(AudioFileClip(scene['voiceover_filename']))
         scene_videos.append(video_clip_with_audio)
 
     final_clip = concatenate_videoclips(scene_videos, method="compose")
