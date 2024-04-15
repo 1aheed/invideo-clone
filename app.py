@@ -1,18 +1,14 @@
 import gradio as gr
 import json
 import requests
-import pyttsx3
 import random
 from moviepy.editor import VideoFileClip, concatenate_videoclips, AudioFileClip
+from gtts import gTTS
 
-# Function to generate voiceover using pyttsx3 with a female voice
-def generate_voiceover(text, filename, speed=130):
-    engine = pyttsx3.init()
-    voices = engine.getProperty('voices')
-    engine.setProperty('voice', voices[1].id)  
-    engine.setProperty('rate', speed)
-    engine.save_to_file(text, filename)
-    engine.runAndWait()
+# Function to generate voiceover using gTTS
+def generate_voiceover(text, filename, speed=1.0):
+    tts = gTTS(text=text, lang='en', slow=False)
+    tts.save(filename)
 
 # Function to fetch landscape videos from Pexels 
 def get_pexels_video(keyword):
