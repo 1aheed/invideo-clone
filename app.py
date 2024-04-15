@@ -119,21 +119,30 @@ def process_video(topic):
 
     # Step 3: Fetch videos from Pexels based on default orientation (landscape)
     for scene in scene_info:
-        video_url = get_pexels_video(scene['keyword'])
-        if video_url:
-            # Download video file locally
-            video_filename = f"{scene['scene']}_video.mp4"
-            with open(video_filename, 'wb') as f:
-                f.write(requests.get(video_url).content)
-            scene['video_filename'] = video_filename
+        video_urls = [get_pexels_video(scene['keyword']) for _ in range(3)]  # Fetch 3 videos for each scene
+        video_filenames = []
+        for video_url in video_urls:
+            if video_url:
+                # Download video file locally
+                video_filename = f"{scene['scene']}_video_{len(video_filenames)}.mp4"
+                with open(video_filename, 'wb') as f:
+                    f.write(requests.get(video_url).content)
+                video_filenames.append(video_filename)
+        scene['video_filenames'] = video_filenames
 
     # Step 4: Create Scene Videos
     scene_videos = []
     for scene in scene_info:
-        video_clip = VideoFileClip(scene['video_filename']).subclip(0, scene['voiceover_duration'])
+        video_clips = []
+        for video_filename in scene['video_filenames']:
+            video_clip = VideoFileClip(video_filename)
+            video_clips.append(video_clip)
+        concatenated_clip = concatenate_videoclips(video_clips)
+        # Trim the concatenated clip to match the voiceover duration
+        concatenated_clip = concatenated_clip.subclip(0, scene['voiceover_duration'])
         # Add audio to video clip
-        video_clip = video_clip.set_audio(AudioFileClip(scene['voiceover_filename']))
-        scene_videos.append(video_clip)  # Append video_clip object instead of filename
+        concatenated_clip = concatenated_clip.set_audio(AudioFileClip(scene['voiceover_filename']))
+        scene_videos.append(concatenated_clip)
 
     final_filename = title_filename + '.mp4'
     concatenate_videos_ffmpeg(scene_videos, final_filename)
@@ -141,7 +150,8 @@ def process_video(topic):
     # Clean up downloaded files
     for scene in scene_info:
         os.remove(scene['voiceover_filename'])
-        os.remove(scene['video_filename'])
+        for video_filename in scene['video_filenames']:
+            os.remove(video_filename)
 
     return final_filename, title_filename, description, tags
 
