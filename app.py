@@ -2,11 +2,12 @@ import gradio as gr
 import json
 import requests
 import random
-from moviepy.editor import VideoFileClip, concatenate_videoclips, AudioFileClip
+import cv2
+import numpy as np
 from gtts import gTTS
 
 # Function to generate voiceover using gTTS
-def generate_voiceover(text, filename, speed=1.0):
+def generate_voiceover(text, filename):
     tts = gTTS(text=text, lang='en', slow=False)
     tts.save(filename)
 
@@ -26,12 +27,7 @@ def get_pexels_video(keyword):
         landscape_videos = [video for video in videos if video['width'] > video['height']]
         if landscape_videos:
             selected_video = random.choice(landscape_videos)
-            video_url = selected_video['video_files'][0]['link']
-            video_file_name = f"{keyword}_video.mp4"
-            # Download the video file
-            with open(video_file_name, 'wb') as f:
-                f.write(requests.get(video_url).content)
-            return video_file_name
+            return selected_video['video_files'][0]['link']
         else:
             print(f"No landscape video found on Pexels for {keyword}")
             return None
@@ -39,7 +35,7 @@ def get_pexels_video(keyword):
         print("Failed to fetch video from Pexels")
         return None
 
-# Step 1: Generate video content and create data.json
+# Function to generate video content using Google API
 def generate_video_content(topic):
     api_key = "AIzaSyAtVhAjcUi7tHYnYZTWA4_L2ExvsAeupQY"
     url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.0-pro:generateContent?key={api_key}"
@@ -50,7 +46,7 @@ def generate_video_content(topic):
                 "role": "user",
                 "parts": [
                     {
-                        "text": f"you are a professional youtube creator, create a video on {topic} and the keyword under each scene will be used for pexels search query so give precise keyword for each secene. Give upto 15 related tags. Always create in this json format and give just the json: {{    \"title_filename\": \"\",    \"description\": \"\",    \"video\": [      {{        \"scene\": \"\",        \"keyword\": \"\",        \"voiceover\": \"\"      }}   ],    \"tags\": [\"\", \"\", \"\"]  }}"
+                        "text": f"you are a professional youtube creator, create a video on {topic} and the keyword under each scene will be used for pexels search query so give precise keyword for each scene. Give up to 15 related tags. Always create in this json format and give just the json: {{    \"title_filename\": \"\",    \"description\": \"\",    \"video\": [      {{        \"scene\": \"\",        \"keyword\": \"\",        \"voiceover\": \"\"      }}   ],    \"tags\": [\"\", \"\", \"\"]  }}"
                     }
                 ]
             }
@@ -98,47 +94,75 @@ def generate_video_content(topic):
     else:
         print("Error occurred while fetching data")
 
-# Step 2: Process video with downloaded video files
+# Function to process video using OpenCV
 def process_video(topic):
+    # Generate video content
     generate_video_content(topic)
 
     # Load JSON data
     with open('data.json', 'r') as f:
         data = json.load(f)
 
-    # Extract title, description, and tags
-    title_filename = data.get('title_filename', '')
-    description = data.get('description', '')
-    tags = ", ".join(data.get('tags', []))
-
-    # Step 2: Generate Voiceover and get duration
     scene_info = []
     for scene in data['video']:
         voiceover_text = scene['voiceover']
         voiceover_filename = f"{scene['scene']}_voiceover.mp3"
         generate_voiceover(voiceover_text, voiceover_filename)
-        voiceover_duration = AudioFileClip(voiceover_filename).duration
-        scene_info.append({'scene': scene['scene'], 'voiceover_filename': voiceover_filename, 'voiceover_duration': voiceover_duration, 'keyword': scene['keyword']})
+        scene_info.append({'voiceover_filename': voiceover_filename, 'keyword': scene['keyword']})
 
-    # Step 3: Fetch videos from Pexels based on default orientation (landscape)
+    # Fetch videos from Pexels
     for scene in scene_info:
-        video_file = get_pexels_video(scene['keyword'])
-        if video_file:
-            scene['video_file'] = video_file
+        video_url = get_pexels_video(scene['keyword'])
+        if video_url:
+            scene['video_url'] = video_url
+        else:
+            return "Error: Failed to fetch video from Pexels"
 
-    # Step 4: Create Scene Videos
+    # Create Scene Videos
     scene_videos = []
     for scene in scene_info:
-        video_clip = VideoFileClip(scene['video_file']).subclip(0, scene['voiceover_duration'])
-        video_clip = video_clip.set_audio(AudioFileClip(scene['voiceover_filename']))
-        video_clip = video_clip.resize((1920, 1080)) 
-        scene_videos.append(video_clip)
+        cap = cv2.VideoCapture(scene['video_url'])
+        if not cap.isOpened():
+            return "Error: Failed to open video file"
 
-    final_video = concatenate_videoclips(scene_videos)
-    final_filename = title_filename + '.mp4'
-    final_video.write_videofile(final_filename, codec='libx264', fps=24)
+        fps = cap.get(cv2.CAP_PROP_FPS)
+        frame_count = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
 
-    return final_filename, title_filename, description, tags
+        # Set duration of the video to match voiceover duration
+        duration = frame_count / fps
+
+        # Create VideoWriter object
+        fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+        output_filename = f"{scene['keyword']}_scene.mp4"
+        out = cv2.VideoWriter(output_filename, fourcc, fps, (1920, 1080))
+
+        # Read frames and write to output video
+        for i in range(int(fps * duration)):
+            ret, frame = cap.read()
+            if not ret:
+                break
+            out.write(frame)
+
+        # Release VideoCapture and VideoWriter objects
+        cap.release()
+        out.release()
+
+        scene_videos.append(output_filename)
+
+    # Concatenate scene videos
+    final_video = cv2.VideoCapture(scene_videos[0])
+    for video_file in scene_videos[1:]:
+        video = cv2.VideoCapture(video_file)
+        while True:
+            ret, frame = video.read()
+            if not ret:
+                break
+            final_video.write(frame)
+        video.release()
+
+    final_video.release()
+
+    return "Final video generated successfully."
 
 def gr_interface(topic):
     video_file, title_filename, description, tags = process_video(topic)
