@@ -4,6 +4,10 @@ import requests
 import random
 from moviepy.editor import VideoFileClip, concatenate_videoclips, AudioFileClip
 from gtts import gTTS
+import logging
+
+# Configure logging
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
 # Function to generate voiceover using gTTS
 def generate_voiceover(text, filename, speed=1.0):
@@ -11,33 +15,35 @@ def generate_voiceover(text, filename, speed=1.0):
     tts.save(filename)
 
 
-# Function to fetch landscape video direct links from Pexels 
+# Function to fetch landscape videos from Pexels with error handling
 def get_pexels_video(keyword):
-    headers = {"Authorization": "8LpygbUwv484x1RkoAJuKH08yhmBKrYpJ0MlLSLboSS736mfs1dODS3v"} 
+    headers = {"Authorization": "8LpygbUwv484x1RkoAJuKH08yhmBKrYpJ0MlLSLboSS736mfs1dODS3v"}  # Replace with your API key
     params = {
-        "query": keyword, 
-        "per_page": 20,  # Increase the per_page parameter to get more results
-        "orientation": "landscape", 
+        "query": keyword,
+        "per_page": 20,
+        "orientation": "landscape",
         "size": "large"
     }
-    response = requests.get("https://api.pexels.com/videos/search", headers=headers, params=params)
 
-    if response.status_code == 200:
+    try:
+        response = requests.get("https://api.pexels.com/videos/search", headers=headers, params=params)
+        response.raise_for_status()  # Raise an error for bad status codes
+
         videos = response.json()['videos']
         landscape_videos = [video for video in videos if video['width'] > video['height']]
         if landscape_videos:
             selected_video = random.choice(landscape_videos)
             return selected_video['video_files'][0]['link']
         else:
-            print(f"No landscape video found on Pexels for {keyword}")
+            logging.warning(f"No landscape video found on Pexels for {keyword}")
             return None
-    else:
-        print("Failed to fetch video from Pexels")
+    except requests.exceptions.RequestException as e:
+        logging.error(f"Error fetching video from Pexels: {e}")
         return None
 
 # Step 1: Generate video content and create data.json
 def generate_video_content(topic):
-    api_key = "AIzaSyAtVhAjcUi7tHYnYZTWA4_L2ExvsAeupQY"
+    api_key = "AIzaSyAtVhAjcUi7tHYnYZTWA4_L2ExvsAeupQY"  # Replace with your API key
     url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.0-pro:generateContent?key={api_key}"
 
     payload = {
