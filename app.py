@@ -1,15 +1,19 @@
-import gradio as gr
 import json
 import requests
 import random
+import pyttsx3
+import os
 from moviepy.editor import VideoFileClip, concatenate_videoclips, AudioFileClip
-from gtts import gTTS
+import gradio as gr
 
-# Function to generate voiceover using gTTS
-def generate_voiceover(text, filename, speed=1.0):
-    tts = gTTS(text=text, lang='en', slow=False)
-    tts.save(filename)
-
+# Function to generate voiceover using pyttsx3 with a female voice
+def generate_voiceover(text, filename, speed=130):
+    engine = pyttsx3.init()
+    voices = engine.getProperty('voices')
+    engine.setProperty('voice', voices[1].id)  
+    engine.setProperty('rate', speed)
+    engine.save_to_file(text, filename)
+    engine.runAndWait()
 
 # Function to fetch landscape videos from Pexels 
 def get_pexels_video(keyword):
@@ -27,7 +31,12 @@ def get_pexels_video(keyword):
         landscape_videos = [video for video in videos if video['width'] > video['height']]
         if landscape_videos:
             selected_video = random.choice(landscape_videos)
-            return selected_video['video_files'][0]['link']
+            video_url = selected_video['video_files'][0]['link']
+            video_file_name = f"{keyword}_video.mp4"
+            # Download the video file
+            with open(video_file_name, 'wb') as f:
+                f.write(requests.get(video_url).content)
+            return video_file_name
         else:
             print(f"No landscape video found on Pexels for {keyword}")
             return None
@@ -94,6 +103,7 @@ def generate_video_content(topic):
     else:
         print("Error occurred while fetching data")
 
+# Step 2: Process video with downloaded video files
 def process_video(topic):
     generate_video_content(topic)
 
@@ -117,15 +127,16 @@ def process_video(topic):
 
     # Step 3: Fetch videos from Pexels based on default orientation (landscape)
     for scene in scene_info:
-        video_url = get_pexels_video(scene['keyword'])
-        if video_url:
-            scene['video_url'] = video_url
+        video_file = get_pexels_video(scene['keyword'])
+        if video_file:
+            scene['video_file'] = video_file
 
     # Step 4: Create Scene Videos
     scene_videos = []
     for scene in scene_info:
-        video_clip = VideoFileClip(scene['video_url']).subclip(0, scene['voiceover_duration'])
+        video_clip = VideoFileClip(scene['video_file']).subclip(0, scene['voiceover_duration'])
         video_clip = video_clip.set_audio(AudioFileClip(scene['voiceover_filename']))
+        video_clip = video_clip.resize((1920, 1080)) 
         scene_videos.append(video_clip)
 
     final_video = concatenate_videoclips(scene_videos)
