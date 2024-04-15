@@ -1,4 +1,3 @@
-gradio
 espeak
 pyttsx3
 moviepy
