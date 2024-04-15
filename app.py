@@ -6,6 +6,7 @@ import subprocess
 import os
 
 from gtts import gTTS
+from moviepy.editor import VideoFileClip, AudioFileClip, concatenate_videoclips
 
 # Function to generate voiceover using gTTS
 def generate_voiceover(text, filename, speed=1.0):
@@ -113,7 +114,7 @@ def process_video(topic):
         voiceover_text = scene['voiceover']
         voiceover_filename = f"{scene['scene']}_voiceover.mp3"
         generate_voiceover(voiceover_text, voiceover_filename)
-        voiceover_duration = AudioFileClip(voiceover_filename).duration
+        voiceover_duration = AudioFileClip(voiceover_filename).duration  # Corrected line
         scene_info.append({'scene': scene['scene'], 'voiceover_filename': voiceover_filename, 'voiceover_duration': voiceover_duration, 'keyword': scene['keyword']})
 
     # Step 3: Fetch videos from Pexels based on default orientation (landscape)
