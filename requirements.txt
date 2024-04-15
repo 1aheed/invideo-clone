@@ -1,4 +1,6 @@
 gradio
+numpy
+opencv
 gtts
 moviepy
 requests
