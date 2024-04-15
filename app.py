@@ -5,6 +5,7 @@ import random
 from moviepy.editor import VideoFileClip, concatenate_videoclips, AudioFileClip
 from gtts import gTTS
 import os
+from PIL import Image
 
 # Function to generate voiceover using gTTS
 def generate_voiceover(text, filename, speed=1.0):
@@ -130,7 +131,7 @@ def process_video(topic):
     for scene in scene_info:
         video_clip = VideoFileClip(scene['video_filename']).subclip(0, scene['voiceover_duration'])
         video_clip = video_clip.set_audio(AudioFileClip(scene['voiceover_filename']))
-        video_clip = video_clip.resize((1920, 1080)) 
+        video_clip = video_clip.resize((1920, 1080), resample=Image.ANTIALIAS)
         scene_videos.append(video_clip)
 
     final_video = concatenate_videoclips(scene_videos)
