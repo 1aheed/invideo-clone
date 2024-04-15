@@ -134,7 +134,7 @@ def process_video(topic):
 
     final_video = concatenate_videoclips(scene_videos)
     final_filename = title_filename + '.mp4'
-    final_video.write_videofile(final_filename, codec='libx264', fps=24, resolution=(1920, 1080))
+    final_video.write_videofile(final_filename, codec='libx264', fps=24, resolution=1920,1080)
 
     # Clean up downloaded files
     for scene in scene_info:
