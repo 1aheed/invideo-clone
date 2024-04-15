@@ -13,7 +13,6 @@ def generate_voiceover(text, filename, speed=1.0):
     tts = gTTS(text=text, lang='en', slow=False)
     tts.save(filename)
 
-# Function to fetch landscape videos from Pexels 
 def get_pexels_video(keyword):
     headers = {"Authorization": "8LpygbUwv484x1RkoAJuKH08yhmBKrYpJ0MlLSLboSS736mfs1dODS3v"} 
     params = {
@@ -21,19 +20,19 @@ def get_pexels_video(keyword):
         "per_page": 20,  # Increase the per_page parameter to get more results
         "orientation": "portrait", 
         "size": "large",
-        "min_width": 2120,
-        "min_height": 1280
+        "min_width": 1280,
+        "min_height": 2120
     }
     response = requests.get("https://api.pexels.com/videos/search", headers=headers, params=params)
 
     if response.status_code == 200:
         videos = response.json()['videos']
-        landscape_videos = [video for video in videos if video['width'] > video['height']]
-        if landscape_videos:
-            selected_video = random.choice(landscape_videos)
+        portrait_videos = [video for video in videos if video['width'] > video['height']]
+        if portrait_videos:
+            selected_video = random.choice(portrait_videos)
             return selected_video['video_files'][0]['link']
         else:
-            print(f"No landscape video found on Pexels for {keyword}")
+            print(f"No portrait video found on Pexels for {keyword}")
             return None
     else:
         print("Failed to fetch video from Pexels")
