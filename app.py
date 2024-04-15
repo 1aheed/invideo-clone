@@ -4,10 +4,7 @@ import requests
 import random
 from moviepy.editor import VideoFileClip, concatenate_videoclips, AudioFileClip
 from gtts import gTTS
-import logging
-
-# Configure logging
-logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
+import os
 
 # Function to generate voiceover using gTTS
 def generate_voiceover(text, filename, speed=1.0):
@@ -15,35 +12,37 @@ def generate_voiceover(text, filename, speed=1.0):
     tts.save(filename)
 
 
-# Function to fetch landscape videos from Pexels with error handling
-def get_pexels_video(keyword):
-    headers = {"Authorization": "8LpygbUwv484x1RkoAJuKH08yhmBKrYpJ0MlLSLboSS736mfs1dODS3v"}  # Replace with your API key
+# Function to download landscape videos from Pexels
+def download_pexels_video(keyword, save_dir="videos"):
+    headers = {"Authorization": "8LpygbUwv484x1RkoAJuKH08yhmBKrYpJ0MlLSLboSS736mfs1dODS3v"} 
     params = {
-        "query": keyword,
-        "per_page": 20,
-        "orientation": "landscape",
+        "query": keyword, 
+        "per_page": 20,  # Increase the per_page parameter to get more results
+        "orientation": "landscape", 
         "size": "large"
     }
+    response = requests.get("https://api.pexels.com/videos/search", headers=headers, params=params)
 
-    try:
-        response = requests.get("https://api.pexels.com/videos/search", headers=headers, params=params)
-        response.raise_for_status()  # Raise an error for bad status codes
-
+    if response.status_code == 200:
         videos = response.json()['videos']
         landscape_videos = [video for video in videos if video['width'] > video['height']]
         if landscape_videos:
             selected_video = random.choice(landscape_videos)
-            return selected_video['video_files'][0]['link']
+            video_url = selected_video['video_files'][0]['link']
+            video_filename = os.path.join(save_dir, f"{keyword}_video.mp4")
+            with open(video_filename, 'wb') as f:
+                f.write(requests.get(video_url).content)
+            return video_filename
         else:
-            logging.warning(f"No landscape video found on Pexels for {keyword}")
+            print(f"No landscape video found on Pexels for {keyword}")
             return None
-    except requests.exceptions.RequestException as e:
-        logging.error(f"Error fetching video from Pexels: {e}")
+    else:
+        print("Failed to fetch video from Pexels")
         return None
 
 # Step 1: Generate video content and create data.json
 def generate_video_content(topic):
-    api_key = "AIzaSyAtVhAjcUi7tHYnYZTWA4_L2ExvsAeupQY"  # Replace with your API key
+    api_key = "AIzaSyAtVhAjcUi7tHYnYZTWA4_L2ExvsAeupQY"
     url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.0-pro:generateContent?key={api_key}"
 
     payload = {
@@ -123,14 +122,14 @@ def process_video(topic):
 
     # Step 3: Fetch videos from Pexels based on default orientation (landscape)
     for scene in scene_info:
-        video_url = get_pexels_video(scene['keyword'])
-        if video_url:
-            scene['video_url'] = video_url
+        video_filename = download_pexels_video(scene['keyword'])
+        if video_filename:
+            scene['video_filename'] = video_filename
 
     # Step 4: Create Scene Videos
     scene_videos = []
     for scene in scene_info:
-        video_clip = VideoFileClip(scene['video_url']).subclip(0, scene['voiceover_duration'])
+        video_clip = VideoFileClip(scene['video_filename']).subclip(0, scene['voiceover_duration'])
         video_clip = video_clip.set_audio(AudioFileClip(scene['voiceover_filename']))
         video_clip = video_clip.resize((1920, 1080)) 
         scene_videos.append(video_clip)
