@@ -50,7 +50,7 @@ def generate_video_content(topic):
                 "role": "user",
                 "parts": [
                     {
-                        "text": f"Create a short one-minute video on {topic} and the keyword under each scene will be used for pexels search query, so give a precise keyword for each scene and create  very short scenes. Give upto 15 related tags. Give response in this json format and give just the json: {{    \"title_filename\": \"\",    \"description\": \"\",    \"video\": [      {{        \"scene\": \"\",        \"keyword\": \"\",        \"voiceover\": \"\"      }}   ],    \"tags\": [\"\", \"\", \"\"]  }}"
+                        "text": f"Create a short one-minute video on {topic} and the keyword under each scene will be used for pexels search query, so give a precise keyword for each scene and create  very short scenes. Give upto 15 related tags. Give response in this json format and give just the json: {{    \"title\": \"\",    \"description\": \"\",    \"video\": [      {{        \"scene\": \"\",        \"keyword\": \"\",        \"voiceover\": \"\"      }}   ],    \"tags\": [\"\", \"\", \"\"]  }}"
                     }
                 ]
             }
@@ -120,20 +120,20 @@ def concatenate_videos_ffmpeg(scene_videos, output_filename):
     for temp_filename in temp_filenames:
         os.remove(temp_filename)
 
-# Function to process video
+
 def process_video(topic):
     generate_video_content(topic)
 
-    # Load JSON data
+    
     with open('data.json', 'r') as f:
         data = json.load(f)
 
-    # Extract title, description, and tags
-    title_filename = data.get('title_filename', '')
+    
+    title = data.get('title', '')
     description = data.get('description', '')
     tags = ", ".join(data.get('tags', []))
 
-    # Step 2: Generate Voiceover and get duration
+    
     scene_info = []
     for scene in data['video']:
         voiceover_text = scene['voiceover']
@@ -169,7 +169,7 @@ def process_video(topic):
         concatenated_clip = concatenated_clip.set_audio(AudioFileClip(scene['voiceover_filename']))
         scene_videos.append(concatenated_clip)
 
-    final_filename = title_filename + '.mp4'
+    final_filename = title + '.mp4'
     concatenate_videos_ffmpeg(scene_videos, final_filename)
 
     # Clean up downloaded files
@@ -178,7 +178,7 @@ def process_video(topic):
         for video_filename in scene['video_filenames']:
             os.remove(video_filename)
 
-    return final_filename, title_filename, description, tags
+    return final_filename, title, description, tags
 
 iface = gr.Interface(
     fn=process_video,
