@@ -20,7 +20,9 @@ def get_pexels_video(keyword):
         "query": keyword, 
         "per_page": 20,  # Increase the per_page parameter to get more results
         "orientation": "landscape", 
-        "size": "large"
+        "size": "large",
+        "min_width": 1920,
+        "min_height": 1080
     }
     response = requests.get("https://api.pexels.com/videos/search", headers=headers, params=params)
 
@@ -114,7 +116,7 @@ def process_video(topic):
         voiceover_text = scene['voiceover']
         voiceover_filename = f"{scene['scene']}_voiceover.mp3"
         generate_voiceover(voiceover_text, voiceover_filename)
-        voiceover_duration = AudioFileClip(voiceover_filename).duration  # Corrected line
+        voiceover_duration = AudioFileClip(voiceover_filename).duration
         scene_info.append({'scene': scene['scene'], 'voiceover_filename': voiceover_filename, 'voiceover_duration': voiceover_duration, 'keyword': scene['keyword']})
 
     # Step 3: Fetch videos from Pexels based on default orientation (landscape)
@@ -135,35 +137,46 @@ def process_video(topic):
     for scene in scene_info:
         video_clips = []
         for video_filename in scene['video_filenames']:
-            video_clip = f"file '{video_filename}'"
+            video_clip = VideoFileClip(video_filename)
             video_clips.append(video_clip)
-        video_concat = "|".join(video_clips)
-        # Use FFmpeg to concatenate the videos
-        subprocess.run(['ffmpeg', '-i', f'concat:{video_concat}', '-vf', 'scale=1920:1080', '-c:a', 'aac', '-b:a', '256k', f"{scene['scene']}_concatenated.mp4"], capture_output=True)
+        concatenated_clip = concatenate_videoclips(video_clips)
         # Trim the concatenated clip to match the voiceover duration
-        subprocess.run(['ffmpeg', '-i', f"{scene['scene']}_concatenated.mp4", '-t', str(scene['voiceover_duration']), '-c', 'copy', f"{scene['scene']}_trimmed.mp4"], capture_output=True)
-        # Add audio to trimmed video clip
-        subprocess.run(['ffmpeg', '-i', f"{scene['scene']}_trimmed.mp4", '-i', scene['voiceover_filename'], '-c:v', 'copy', '-c:a', 'aac', '-strict', 'experimental', '-map', '0:v:0', '-map', '1:a:0', '-shortest', f"{scene['scene']}_final.mp4"], capture_output=True)
-        scene_videos.append(f"{scene['scene']}_final.mp4")
+        concatenated_clip = concatenated_clip.subclip(0, scene['voiceover_duration'])
+        # Add audio to video clip
+        concatenated_clip = concatenated_clip.set_audio(AudioFileClip(scene['voiceover_filename']))
+        scene_videos.append(concatenated_clip)
 
     final_filename = title_filename + '.mp4'
-    # Concatenate all scene videos into one final video
-    with open('video_list.txt', 'w') as f:
-        for video_filename in scene_videos:
-            f.write(f"file '{video_filename}'\n")
-    subprocess.run(['ffmpeg', '-f', 'concat', '-safe', '0', '-i', 'video_list.txt', '-c', 'copy', final_filename], capture_output=True)
-    os.remove('video_list.txt')
+    concatenate_videos_ffmpeg(scene_videos, final_filename)
 
     # Clean up downloaded files
     for scene in scene_info:
         os.remove(scene['voiceover_filename'])
         for video_filename in scene['video_filenames']:
             os.remove(video_filename)
-        os.remove(f"{scene['scene']}_concatenated.mp4")
-        os.remove(f"{scene['scene']}_trimmed.mp4")
-        os.remove(f"{scene['scene']}_final.mp4")
 
     return final_filename, title_filename, description, tags
+
+def concatenate_videos_ffmpeg(scene_videos, output_filename):
+    # Write scene_videos to temporary files
+    temp_filenames = []
+    for i, video_clip in enumerate(scene_videos):
+        temp_filename = f'temp_video_{i}.mp4'
+        video_clip.write_videofile(temp_filename, codec="libx264", audio_codec="aac", temp_audiofile="temp-audio.m4a", remove_temp=True, verbose=False)
+        temp_filenames.append(temp_filename)
+
+    # Create a text file containing the list of videos to concatenate
+    with open('video_list.txt', 'w') as f:
+        for temp_filename in temp_filenames:
+            f.write(f"file '{temp_filename}'\n")
+
+    # Use FFmpeg to concatenate the videos and resize to 1920x1080
+    subprocess.run(['ffmpeg', '-f', 'concat', '-safe', '0', '-i', 'video_list.txt', '-vf', 'scale=1920:1080', '-c:a', 'aac', '-b:a', '256k', '-c:v', 'libx264', '-preset', 'medium', output_filename])
+
+    # Clean up the video list file and temporary video files
+    os.remove('video_list.txt')
+    for temp_filename in temp_filenames:
+        os.remove(temp_filename)
 
 def gr_interface(topic):
     video_file, title_filename, description, tags = process_video(topic)
