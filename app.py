@@ -8,36 +8,36 @@ import os
 from gtts import gTTS
 from moviepy.editor import VideoFileClip, AudioFileClip, concatenate_videoclips
 
-# Function to fetch portrait videos from Pexels 
+# Function to generate voiceover using gTTS
+def generate_voiceover(text, filename, speed=1.0):
+    tts = gTTS(text=text, lang='en', slow=False)
+    tts.save(filename)
+
+# Function to fetch landscape videos from Pexels 
 def get_pexels_video(keyword):
     headers = {"Authorization": "8LpygbUwv484x1RkoAJuKH08yhmBKrYpJ0MlLSLboSS736mfs1dODS3v"} 
     params = {
         "query": keyword, 
-        "per_page": 10,
-        "orientation": "portrait",
+        "per_page": 20,  # Increase the per_page parameter to get more results
+        "orientation": "landscape", 
         "size": "large",
-        "min_width": 1080,
-        "min_height": 1920,
+        "min_width": 1920,
+        "min_height": 1080
     }
     response = requests.get("https://api.pexels.com/videos/search", headers=headers, params=params)
 
     if response.status_code == 200:
         videos = response.json()['videos']
-        portrait_videos = [video for video in videos if video['width'] < video['height']]  # Check for portrait videos
-        if portrait_videos:
-            selected_video = random.choice(portrait_videos)
+        landscape_videos = [video for video in videos if video['width'] > video['height']]
+        if landscape_videos:
+            selected_video = random.choice(landscape_videos)
             return selected_video['video_files'][0]['link']
         else:
-            print(f"No portrait video found on Pexels for {keyword}")
+            print(f"No landscape video found on Pexels for {keyword}")
             return None
     else:
         print("Failed to fetch video from Pexels")
         return None
-
-# Function to generate voiceover using gTTS
-def generate_voiceover(text, filename, speed=1.0):
-    tts = gTTS(text=text, lang='en', slow=False)
-    tts.save(filename)
 
 # Function to generate video content and create data.json
 def generate_video_content(topic):
@@ -50,7 +50,7 @@ def generate_video_content(topic):
                 "role": "user",
                 "parts": [
                     {
-                        "text": f"Create a short one-minute video on {topic} and the keyword under each scene will be used for pexels search query, so give a precise keyword for each scene and create  very short scenes. Give upto 15 related tags. Give response in this json format and give just the json: {{    \"title\": \"\",    \"description\": \"\",    \"video\": [      {{        \"scene\": \"\",        \"keyword\": \"\",        \"voiceover\": \"\"      }}   ],    \"tags\": [\"\", \"\", \"\"]  }}"
+                        "text": f"you are a professional youtube creator, create a video on {topic} and the keyword under each scene will be used for pexels search query so give precise keyword for each secene. Give upto 15 related tags. Always create in this json format and give just the json: {{    \"title_filename\": \"\",    \"description\": \"\",    \"video\": [      {{        \"scene\": \"\",        \"keyword\": \"\",        \"voiceover\": \"\"      }}   ],    \"tags\": [\"\", \"\", \"\"]  }}"
                     }
                 ]
             }
@@ -98,42 +98,19 @@ def generate_video_content(topic):
     else:
         print("Error occurred while fetching data")
 
-# Function to concatenate videos using FFmpeg
-def concatenate_videos_ffmpeg(scene_videos, output_filename):
-    # Write scene_videos to temporary files
-    temp_filenames = []
-    for i, video_clip in enumerate(scene_videos):
-        temp_filename = f'temp_video_{i}.mp4'
-        video_clip.write_videofile(temp_filename, codec="libx264", audio_codec="aac", temp_audiofile="temp-audio.m4a", remove_temp=True, verbose=False)
-        temp_filenames.append(temp_filename)
-
-    # Create a text file containing the list of videos to concatenate
-    with open('video_list.txt', 'w') as f:
-        for temp_filename in temp_filenames:
-            f.write(f"file '{temp_filename}'\n")
-
-    # Use FFmpeg to concatenate the videos without resizing
-    subprocess.run(['ffmpeg', '-f', 'concat', '-safe', '0', '-i', 'video_list.txt', '-vf', 'scale=1080:1920', '-c:a', 'aac', '-b:a', '256k', '-c:v', 'libx264', '-preset', 'medium', output_filename])
-
-    # Clean up the video list file and temporary video files
-    os.remove('video_list.txt')
-    for temp_filename in temp_filenames:
-        os.remove(temp_filename)
-
-
 def process_video(topic):
     generate_video_content(topic)
 
-    
+    # Load JSON data
     with open('data.json', 'r') as f:
         data = json.load(f)
 
-    
-    title = data.get('title', '')
+    # Extract title, description, and tags
+    title_filename = data.get('title_filename', '')
     description = data.get('description', '')
     tags = ", ".join(data.get('tags', []))
 
-    
+    # Step 2: Generate Voiceover and get duration
     scene_info = []
     for scene in data['video']:
         voiceover_text = scene['voiceover']
@@ -142,7 +119,7 @@ def process_video(topic):
         voiceover_duration = AudioFileClip(voiceover_filename).duration
         scene_info.append({'scene': scene['scene'], 'voiceover_filename': voiceover_filename, 'voiceover_duration': voiceover_duration, 'keyword': scene['keyword']})
 
-    # Step 3: Fetch videos from Pexels based on portrait orientation
+    # Step 3: Fetch videos from Pexels based on default orientation (landscape)
     for scene in scene_info:
         video_urls = [get_pexels_video(scene['keyword']) for _ in range(3)]  # Fetch 3 videos for each scene
         video_filenames = []
@@ -155,7 +132,7 @@ def process_video(topic):
                 video_filenames.append(video_filename)
         scene['video_filenames'] = video_filenames
 
-    # Step 4: Create Scene Videos without resizing
+    # Step 4: Create Scene Videos
     scene_videos = []
     for scene in scene_info:
         video_clips = []
@@ -169,7 +146,7 @@ def process_video(topic):
         concatenated_clip = concatenated_clip.set_audio(AudioFileClip(scene['voiceover_filename']))
         scene_videos.append(concatenated_clip)
 
-    final_filename = title + '.mp4'
+    final_filename = title_filename + '.mp4'
     concatenate_videos_ffmpeg(scene_videos, final_filename)
 
     # Clean up downloaded files
@@ -178,14 +155,39 @@ def process_video(topic):
         for video_filename in scene['video_filenames']:
             os.remove(video_filename)
 
-    return final_filename, title, description, tags
+    return final_filename, title_filename, description, tags
+
+def concatenate_videos_ffmpeg(scene_videos, output_filename):
+    # Write scene_videos to temporary files
+    temp_filenames = []
+    for i, video_clip in enumerate(scene_videos):
+        temp_filename = f'temp_video_{i}.mp4'
+        video_clip.write_videofile(temp_filename, codec="libx264", audio_codec="aac", temp_audiofile="temp-audio.m4a", remove_temp=True, verbose=False)
+        temp_filenames.append(temp_filename)
+
+    # Create a text file containing the list of videos to concatenate
+    with open('video_list.txt', 'w') as f:
+        for temp_filename in temp_filenames:
+            f.write(f"file '{temp_filename}'\n")
+
+    # Use FFmpeg to concatenate the videos and resize to 1920x1080
+    subprocess.run(['ffmpeg', '-f', 'concat', '-safe', '0', '-i', 'video_list.txt', '-vf', 'scale=1920:1080', '-c:a', 'aac', '-b:a', '256k', '-c:v', 'libx264', '-preset', 'medium', output_filename])
+
+    # Clean up the video list file and temporary video files
+    os.remove('video_list.txt')
+    for temp_filename in temp_filenames:
+        os.remove(temp_filename)
+
+def gr_interface(topic):
+    video_file, title_filename, description, tags = process_video(topic)
+    return video_file, title_filename, description, tags
 
 iface = gr.Interface(
-    fn=process_video,
+    fn=gr_interface,
     inputs="text",
     outputs=["video", "text", "text", "text"],
-    description="Generate a free video just from a topic for free! This is a prototype if you want for long videos with elevenlabs voice, contact me I have a code ready for it.",
-    title="Text to YouTube Video"
+    description="Generate a video from topic for free",
+    title="Video Processing"
 )
 
 iface.launch()
