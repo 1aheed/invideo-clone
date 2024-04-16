@@ -15,7 +15,7 @@ def generate_voiceover(text, filename, speed=1.0):
 
 # Function to fetch landscape videos from Pexels 
 def get_pexels_video(keyword):
-    headers = {"Authorization": "8LpygbUwv484x1RkoAJuKH08yhmBKrYpJ0MlLSLboSS736mfs1dODS3v"} 
+    headers = {"Authorization": "P310n0wKAlr05spr9UrtHeQXqouRlCL7r1jT6RQD55I1FIqyZt4fx7SL"} 
     params = {
         "query": keyword, 
         "per_page": 20,  # Increase the per_page parameter to get more results
