@@ -6,6 +6,9 @@ This project aims to generate long landscape videos based on a given topic or wo
 
 The project consists of a Python script that takes a text input (topic or word) and generates a video based on that input. The generated video includes scenes with relevant content fetched from Pexels, accompanied by voiceovers synthesized using Google Text-to-Speech (gTTS).
 
+## Huggingface demo
+[View here](https://huggingface.co/spaces/aheedsajid/invideo-clone)
+
 ## Web demo
 [View here](https://ziverr.xyz)
 
