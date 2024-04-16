@@ -186,7 +186,7 @@ iface = gr.Interface(
     fn=process_video,
     inputs="text",
     outputs=["video", "text", "text", "text"],
-    description="Generate a free long video just with a word or topic. Best for YouTube or documentary inspiration. This is a prototype. If you want better software inbox or email me now aheedsajid@gmail.com and do like and [Donate >](https://nowpayments.io/donation/aheed).",
+    description="Generate a free long video just with a word or topic. Best for YouTube or documentary inspiration. This is a prototype. If you want better software inbox or email me now aheedsajid@gmail.com and do like and [Click here to Donate](https://nowpayments.io/donation/aheed). <b>Want to make short vertical/portrait videos?</b> [Click here](https://huggingface.co/spaces/aheedsajid/shorts-maker) ",
     title="Text to Long Video - Invideo AI Clone"
 )
 
