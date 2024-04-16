@@ -183,11 +183,11 @@ def gr_interface(topic):
     return video_file, title_filename, description, tags
 
 iface = gr.Interface(
-    fn=gr_interface,
+    fn=process_video,
     inputs="text",
     outputs=["video", "text", "text", "text"],
-    description="Generate a video from topic for free",
-    title="Video Processing"
+    description="Generate a free long video just with a word or topic. Best for YouTube or documentary inspiration. This is a prototype. If you want better software inbox or email me now aheedsajid@gmail.com and do like and [Donate >](https://nowpayments.io/donation/aheed).",
+    title="Text to Long Video - Invideo AI Clone"
 )
 
 iface.launch()
